@@ -74,17 +74,17 @@ resource "google_cloudiot_device" "test-device" {
 }
 
 resource "google_service_account" "storage-reader-sa" {
-  account_id   = "iot-storage-reader-${var.google_project_id}"
+  account_id   = "iot-storage-reader"
   display_name = "IoT Download"
 }
 
 resource "google_service_account" "storage-writer-sa" {
-  account_id   = "iot-storage-writer-${var.google_project_id}"
+  account_id   = "iot-storage-writer"
   display_name = "IoT Upload"
 }
 
 resource "google_service_account" "token-broker-sa" {
-  account_id   = "token-broker-${var.google_project_id}"
+  account_id   = "iot-token-broker"
   display_name = "Access Token Broker"
 }
 
