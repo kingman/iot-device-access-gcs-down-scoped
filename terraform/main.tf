@@ -72,3 +72,46 @@ resource "google_cloudiot_device" "test-device" {
     }
   }
 }
+
+resource "google_service_account" "storage-reader-sa" {
+  account_id   = "iot-storage-reader-${var.google_project_id}"
+  display_name = "IoT Download"
+}
+
+resource "google_service_account" "storage-writer-sa" {
+  account_id   = "iot-storage-writer-${var.google_project_id}"
+  display_name = "IoT Upload"
+}
+
+resource "google_service_account" "token-broker-sa" {
+  account_id   = "token-broker-${var.google_project_id}"
+  display_name = "Access Token Broker"
+}
+
+resource "google_project_iam_member" "storage-read-permission" {
+  project = var.google_project_id
+  role    = "roles/storage.objectViewer"
+  member  = "serviceAccount:${google_service_account.storage-reader-sa.email}"
+}
+
+resource "google_project_iam_member" "storage-write-permission" {
+  project = var.google_project_id
+  role    = "roles/storage.objectCreator"
+  member  = "serviceAccount:${google_service_account.storage-writer-sa.email}"
+}
+
+resource "google_service_account_iam_binding" "create-read-token-permission" {
+  service_account_id = "projects/-/serviceAccounts/${google_service_account.storage-reader-sa.email}"
+  role               = "roles/iam.serviceAccountTokenCreator"
+  members = [
+      "serviceAccount:${google_service_account.token-broker-sa.email}",
+  ]
+}
+
+resource "google_service_account_iam_binding" "create-write-token-permission" {
+  service_account_id = "projects/-/serviceAccounts/${google_service_account.storage-writer-sa.email}"
+  role               = "roles/iam.serviceAccountTokenCreator"
+  members = [
+      "serviceAccount:${google_service_account.token-broker-sa.email}",
+  ]
+}
