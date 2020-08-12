@@ -40,7 +40,6 @@ resource "google_cloudiot_registry" "device-registry" {
 
   depends_on = [
     google_project_service.cloud-iot-apis,
-    google_project_service.pubsub-apis,
     google_pubsub_topic.default-telemetry
   ]
 
@@ -114,4 +113,40 @@ resource "google_service_account_iam_binding" "create-write-token-permission" {
   members = [
       "serviceAccount:${google_service_account.token-broker-sa.email}",
   ]
+}
+
+data "archive_file" "token-broker-source" {
+  type        = "zip"
+  output_path = "../functions/token-broker-source.zip"
+  source_dir = "../functions/token-broker" 
+}
+
+resource "google_storage_bucket" "cf-source-bucket" {
+  name = "cf-source-bucket-${var.google_project_id}"
+}
+
+resource "google_storage_bucket_object" "token-broker-archive" {
+  name   = "token-broker-source.zip"
+  bucket = google_storage_bucket.cf-source-bucket.name
+  source = "../functions/token-broker-source.zip"
+}
+
+resource "google_cloudfunctions_function" "token-broker-cf" {
+  name        = "token-broker"
+  region      = var.google_default_region
+  runtime     = "python38"
+
+  available_memory_mb   = 256
+  source_archive_bucket = google_storage_bucket.cf-source-bucket.name
+  source_archive_object = google_storage_bucket_object.token-broker-archive.name
+  trigger_http          = true
+  timeout               = 60
+  entry_point           = "generate_down_scoped_token"
+  service_account_email =  google_service_account.token-broker-sa.email
+
+  environment_variables = {
+    TOKEN_LIFETIME = "1800"
+    WRITE_SA = "${google_service_account.storage-writer-sa.email}"
+    READ_SA = "${google_service_account.storage-reader-sa.email}"
+  }
 }

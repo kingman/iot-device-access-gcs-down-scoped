@@ -1,0 +1,6 @@
+*.pem
+.terraform/
+backend.tf
+terraform.tfvars
+*.zip
+tests/
