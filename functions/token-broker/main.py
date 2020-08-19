@@ -29,7 +29,7 @@ def generate_short_lived_token(access_type):
     response = AuthorizedSession(credentials).post(
         _IAM_SA_ENDPOINT + access_sa_account + ":generateAccessToken",
         data={
-            "lifetime": "%ss" % os.environ.get('TOKEN_LIFETIME', 'Specified environment variable is not set.'),
+            "lifetime": f"{os.environ.get('TOKEN_LIFETIME', 'Specified environment variable is not set.')}s",
             "scope" : ["https://www.googleapis.com/auth/cloud-platform"]})
                 
     return json.loads(response.content.decode("utf-8"))["accessToken"]

@@ -1,0 +1,3 @@
+google-cloud-iot~=1.0.0
+requests~=2.21.0
+google-auth~=1.18.0

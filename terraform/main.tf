@@ -87,6 +87,11 @@ resource "google_service_account" "token-broker-sa" {
   display_name = "Access Token Broker"
 }
 
+resource "google_service_account" "download-handler-sa" {
+  account_id   = "iot-download-handler"
+  display_name = "IoT Download Handler"
+}
+
 resource "google_project_iam_member" "storage-read-permission" {
   project = var.google_project_id
   role    = "roles/storage.objectViewer"
@@ -115,10 +120,28 @@ resource "google_service_account_iam_binding" "create-write-token-permission" {
   ]
 }
 
+resource "google_project_iam_member" "storage-admin-permission" {
+  project = var.google_project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.download-handler-sa.email}"
+}
+
+resource "google_project_iam_member" "iot-device-controller-permission" {
+  project = var.google_project_id
+  role    = "roles/cloudiot.deviceController"
+  member  = "serviceAccount:${google_service_account.download-handler-sa.email}"
+}
+
 data "archive_file" "token-broker-source" {
   type        = "zip"
   output_path = "../functions/token-broker-source.zip"
   source_dir = "../functions/token-broker" 
+}
+
+data "archive_file" "download-handler-source" {
+  type        = "zip"
+  output_path = "../functions/download-handler-source.zip"
+  source_dir = "../functions/download-handler"
 }
 
 resource "google_storage_bucket" "cf-source-bucket" {
@@ -129,6 +152,12 @@ resource "google_storage_bucket_object" "token-broker-archive" {
   name   = "token-broker-source.zip"
   bucket = google_storage_bucket.cf-source-bucket.name
   source = "../functions/token-broker-source.zip"
+}
+
+resource "google_storage_bucket_object" "download-handler-archive" {
+  name   = "download-handler-source.zip"
+  bucket = google_storage_bucket.cf-source-bucket.name
+  source = "../functions/download-handler-source.zip"
 }
 
 resource "google_cloudfunctions_function" "token-broker-cf" {
@@ -149,4 +178,31 @@ resource "google_cloudfunctions_function" "token-broker-cf" {
     WRITE_SA = "${google_service_account.storage-writer-sa.email}"
     READ_SA = "${google_service_account.storage-reader-sa.email}"
   }
+}
+
+resource "google_cloudfunctions_function" "download-handler-cf" {
+  name        = "download-handler"
+  region      = var.google_default_region
+  runtime     = "python38"
+
+  available_memory_mb   = 256
+  source_archive_bucket = google_storage_bucket.cf-source-bucket.name
+  source_archive_object = google_storage_bucket_object.download-handler-archive.name
+  trigger_http          = true
+  timeout               = 60
+  entry_point           = "initialize_download_for_device"
+  service_account_email =  google_service_account.download-handler-sa.email
+
+  environment_variables = {
+    TOKEN_BROKER_URL = google_cloudfunctions_function.token-broker-cf.https_trigger_url
+  }
+}
+
+resource "google_cloudfunctions_function_iam_member" "invoker" {
+  project        = google_cloudfunctions_function.token-broker-cf.project
+  region         = google_cloudfunctions_function.token-broker-cf.region
+  cloud_function = google_cloudfunctions_function.token-broker-cf.name
+
+  role   = "roles/cloudfunctions.invoker"
+  member = "serviceAccount:${google_service_account.download-handler-sa.email}"
 }
