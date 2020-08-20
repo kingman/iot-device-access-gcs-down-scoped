@@ -188,7 +188,7 @@ resource "google_cloudfunctions_function" "token-broker-cf" {
   }
 
   depends_on = [
-      google_project_service.functions-apis
+      google_project_service.functions-apis,
       google_project_service.cloudbuild-apis
   ]
 }
@@ -211,7 +211,7 @@ resource "google_cloudfunctions_function" "download-handler-cf" {
   }
 
   depends_on = [
-      google_project_service.functions-apis
+      google_project_service.functions-apis,
       google_project_service.cloudbuild-apis
   ]
 }
