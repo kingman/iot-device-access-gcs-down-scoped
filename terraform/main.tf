@@ -26,7 +26,7 @@ resource "google_project_service" "functions-apis" {
 
 resource "google_project_service" "cloudbuild-apis" {
   project = var.google_project_id
-  service = "https://cloudbuild.googleapis.com"
+  service = "cloudbuild.googleapis.com"
 
   disable_dependent_services = true
   disable_on_destroy         = true
