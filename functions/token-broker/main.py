@@ -27,7 +27,7 @@ def generate_short_lived_token(access_type):
     
     credentials, project = auth.default()
     response = AuthorizedSession(credentials).post(
-        _IAM_SA_ENDPOINT + access_sa_account + ":generateAccessToken",
+        f"{_IAM_SA_ENDPOINT}{access_sa_account}:generateAccessToken",
         data={
             "lifetime": f"{os.environ.get('TOKEN_LIFETIME', 'Specified environment variable is not set.')}s",
             "scope" : ["https://www.googleapis.com/auth/cloud-platform"]})
@@ -62,7 +62,7 @@ def create_downscoped_options(access_type, access_bucket):
         "accessBoundary" : {
             "accessBoundaryRules" : [
                 {
-                    "availableResource" : "//storage.googleapis.com/projects/_/buckets/" + access_bucket,
+                    "availableResource" : f"//storage.googleapis.com/projects/_/buckets/{access_bucket}",
                     "availablePermissions": [permission]
                 }
             ]

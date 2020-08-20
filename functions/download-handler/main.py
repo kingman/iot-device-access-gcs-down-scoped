@@ -62,7 +62,7 @@ def initialize_download_for_device(request):
         }
     }
     return send_download_message_to_device(device_info, 
-    json.dumps(device_download_message))
+    json.dumps(device_download_message).encode('utf-8'))
 
 
 def send_download_message_to_device(device_info, message_str):
@@ -136,5 +136,5 @@ def generate_access_token(file_blob):
     }
     function_headers = {'Authorization': f'bearer {id_token}'}
     function_response = requests.post(
-        token_broker_url, headers=function_headers, json=json.dumps(param))
+        token_broker_url, headers=function_headers, json=param)
     return json.loads(function_response.content)
