@@ -163,7 +163,7 @@ resource "google_storage_bucket_object" "download-handler-archive" {
 resource "google_cloudfunctions_function" "token-broker-cf" {
   name        = "token-broker"
   region      = var.google_default_region
-  runtime     = "python38"
+  runtime     = "python37"
 
   available_memory_mb   = 256
   source_archive_bucket = google_storage_bucket.cf-source-bucket.name
@@ -183,7 +183,7 @@ resource "google_cloudfunctions_function" "token-broker-cf" {
 resource "google_cloudfunctions_function" "download-handler-cf" {
   name        = "download-handler"
   region      = var.google_default_region
-  runtime     = "python38"
+  runtime     = "python37"
 
   available_memory_mb   = 256
   source_archive_bucket = google_storage_bucket.cf-source-bucket.name

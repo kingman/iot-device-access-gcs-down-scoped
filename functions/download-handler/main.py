@@ -29,15 +29,15 @@ storage_client = storage.Client()
 '''
 request json data format:
 {
-    'device': {
-        'PROJECT': '...',
-        'LOCATION': '...',
-        'REGISTRY': '...',
-        'DEVICE_ID': '...'
+    "device": {
+        "PROJECT": "...",
+        "LOCATION": "...",
+        "REGISTRY": "...",
+        "DEVICE_ID": "..."
     },
-    'file': {
-        'bucket-name': '...',
-        'blob-name': '...'
+    "file": {
+        "bucket-name": "...",
+        "blob-name": "..."
     }
 }
 '''
