@@ -24,6 +24,14 @@ resource "google_project_service" "functions-apis" {
   disable_on_destroy         = true
 }
 
+resource "google_project_service" "cloudbuild-apis" {
+  project = var.google_project_id
+  service = "https://cloudbuild.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = true
+}
+
 resource "google_pubsub_topic" "default-telemetry" {
   name    = "default-telemetry"
   project = var.google_project_id
@@ -178,6 +186,11 @@ resource "google_cloudfunctions_function" "token-broker-cf" {
     WRITE_SA = "${google_service_account.storage-writer-sa.email}"
     READ_SA = "${google_service_account.storage-reader-sa.email}"
   }
+
+  depends_on = [
+      google_project_service.functions-apis
+      google_project_service.cloudbuild-apis
+  ]
 }
 
 resource "google_cloudfunctions_function" "download-handler-cf" {
@@ -196,6 +209,11 @@ resource "google_cloudfunctions_function" "download-handler-cf" {
   environment_variables = {
     TOKEN_BROKER_URL = google_cloudfunctions_function.token-broker-cf.https_trigger_url
   }
+
+  depends_on = [
+      google_project_service.functions-apis
+      google_project_service.cloudbuild-apis
+  ]
 }
 
 resource "google_cloudfunctions_function_iam_member" "invoker" {
