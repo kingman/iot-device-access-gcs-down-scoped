@@ -154,6 +154,7 @@ data "archive_file" "download-handler-source" {
 
 resource "google_storage_bucket" "cf-source-bucket" {
   name = "cf-source-bucket-${var.google_project_id}"
+  bucket_policy_only = true
 }
 
 resource "google_storage_bucket_object" "token-broker-archive" {
