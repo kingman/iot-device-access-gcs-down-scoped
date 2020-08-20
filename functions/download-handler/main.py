@@ -136,5 +136,5 @@ def generate_access_token(file_blob):
     }
     function_headers = {'Authorization': f'bearer {id_token}'}
     function_response = requests.post(
-        token_broker_url, headers=function_headers, json=param)
+        token_broker_url, headers=function_headers, json=json.dumps(param)
     return json.loads(function_response.content)
