@@ -19,6 +19,7 @@ from google import auth
 from google.cloud import iot_v1
 from google.cloud import storage
 from google.cloud.exceptions import NotFound
+from google.api_core.exceptions import FailedPrecondition
 import google.auth.transport.requests
 import google.oauth2.id_token
 
@@ -61,8 +62,12 @@ def initialize_download_for_device(request):
             'access-token': f'{access_token["access_token"]}'
         }
     }
-    return send_download_message_to_device(device_info, 
-    json.dumps(device_download_message).encode('utf-8'))
+    try:
+        response = send_download_message_to_device(device_info,
+        json.dumps(device_download_message).encode('utf-8'))
+    except FailedPrecondition:
+        return 'Device is not connected'
+    return 'Download message send'
 
 
 def send_download_message_to_device(device_info, message_str):
