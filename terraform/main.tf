@@ -103,14 +103,9 @@ resource "google_service_account" "token-broker-sa" {
   display_name = "Access Token Broker"
 }
 
-resource "google_service_account" "download-handler-sa" {
-  account_id   = "iot-download-handler"
-  display_name = "IoT Download Handler"
-}
-
-resource "google_service_account" "upload-handler-sa" {
-  account_id   = "iot-upload-handler"
-  display_name = "IoT Upload Handler"
+resource "google_service_account" "iot-gcs-access-handler-sa" {
+  account_id   = "iot-gcs-access-handler"
+  display_name = "IoT GCS Access Handler"
 }
 
 resource "google_project_iam_member" "storage-read-permission" {
@@ -144,19 +139,13 @@ resource "google_service_account_iam_binding" "create-write-token-permission" {
 resource "google_project_iam_member" "storage-admin-permission" {
   project = var.google_project_id
   role    = "roles/storage.admin"
-  members  = [
-    "serviceAccount:${google_service_account.download-handler-sa.email}",
-    "serviceAccount:${google_service_account.upload-handler-sa.email}"
-  ]
+  member  = "serviceAccount:${google_service_account.iot-gcs-access-handler-sa.email}"
 }
 
 resource "google_project_iam_member" "iot-device-controller-permission" {
   project = var.google_project_id
   role    = "roles/cloudiot.deviceController"
-  members  = [
-    "serviceAccount:${google_service_account.download-handler-sa.email}",
-    "serviceAccount:${google_service_account.upload-handler-sa.email}"
-  ]
+  member  = "serviceAccount:${google_service_account.iot-gcs-access-handler-sa.email}"
 }
 
 data "archive_file" "token-broker-source" {
@@ -236,7 +225,7 @@ resource "google_cloudfunctions_function" "download-handler-cf" {
   trigger_http          = true
   timeout               = 60
   entry_point           = "initialize_download_for_device"
-  service_account_email =  google_service_account.download-handler-sa.email
+  service_account_email =  google_service_account.iot-gcs-access-handler-sa.email
 
   environment_variables = {
     TOKEN_BROKER_URL = google_cloudfunctions_function.token-broker-cf.https_trigger_url
@@ -262,7 +251,7 @@ resource "google_cloudfunctions_function" "upload-handler-cf" {
   }
   timeout               = 60
   entry_point           = "on_iot_event"
-  service_account_email =  google_service_account.upload-handler-sa.email
+  service_account_email =  google_service_account.iot-gcs-access-handler-sa.email
 
   environment_variables = {
     TOKEN_BROKER_URL = google_cloudfunctions_function.token-broker-cf.https_trigger_url
@@ -280,8 +269,5 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
   cloud_function = google_cloudfunctions_function.token-broker-cf.name
 
   role   = "roles/cloudfunctions.invoker"
-  members = [
-    "serviceAccount:${google_service_account.download-handler-sa.email}",
-    "serviceAccount:${google_service_account.upload-handler-sa.email}"
-  ]
+  member = "serviceAccount:${google_service_account.iot-gcs-access-handler-sa.email}"
 }
