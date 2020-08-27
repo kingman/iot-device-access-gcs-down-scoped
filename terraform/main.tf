@@ -245,7 +245,7 @@ resource "google_cloudfunctions_function" "upload-handler-cf" {
   available_memory_mb   = 256
   source_archive_bucket = google_storage_bucket.cf-source-bucket.name
   source_archive_object = google_storage_bucket_object.upload-handler-archive.name
-  event_trigger         = {
+  event_trigger {
     event_type = "google.pubsub.topic.publish"
     resource = google_pubsub_topic.default-telemetry.id
   }
