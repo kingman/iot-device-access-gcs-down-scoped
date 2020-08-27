@@ -32,6 +32,14 @@ resource "google_project_service" "cloudbuild-apis" {
   disable_on_destroy         = true
 }
 
+resource "google_project_service" "iam-apis" {
+  project = var.google_project_id
+  service = "iamcredentials.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = true
+}
+
 resource "google_pubsub_topic" "default-telemetry" {
   name    = "default-telemetry"
   project = var.google_project_id
