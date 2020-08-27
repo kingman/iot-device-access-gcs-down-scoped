@@ -156,6 +156,7 @@ resource "google_project_iam_member" "iot-device-controller-permission" {
   members  = [
     "serviceAccount:${google_service_account.download-handler-sa.email}",
     "serviceAccount:${google_service_account.upload-handler-sa.email}"
+  ]
 }
 
 data "archive_file" "token-broker-source" {
