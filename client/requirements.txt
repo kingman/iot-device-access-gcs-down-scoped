@@ -1,0 +1,4 @@
+google-auth
+google-cloud-storage
+paho-mqtt
+pyjwt
