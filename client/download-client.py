@@ -33,7 +33,8 @@ def create_callback(handlers):
 def main():
     with CloudIot() as cloud:
         download_handler = GCSDownloadHandler(cloud.project_id())
-        cloud.register_message_callbacks({download_handler})
+        callbacks = create_callback({download_handler})
+        cloud.register_message_callbacks(callbacks)
 
         for read_count in itertools.count():
             sleep(1000)
