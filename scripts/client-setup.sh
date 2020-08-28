@@ -61,6 +61,7 @@ if [ -f "${DEVICE_CONFIG_FILE}" ]; then
     echo "The ${DEVICE_CONFIG_FILE} file already exists."
 else
     envsubst < ${DEVICE_CONFIG_TEMPLATE_FILE} > ${DEVICE_CONFIG_FILE}
+fi
 
 IOT_DEVICE_PRIVATE_KEY=rsa_private.pem
 IOT_DEVICE_PRIVATE_KEY_PATH=client/${IOT_DEVICE_PRIVATE_KEY}
@@ -68,4 +69,5 @@ echo "Move the generated private key for device to ${IOT_DEVICE_PRIVATE_KEY_PATH
 if [ -f "${IOT_DEVICE_PRIVATE_KEY_PATH}" ]; then
     echo "The ${IOT_DEVICE_PRIVATE_KEY_PATH} file already exists."
 else
-     mv ${IOT_DEVICE_PRIVATE_KEY} ${IOT_DEVICE_PRIVATE_KEY_PATH}
+    mv ${IOT_DEVICE_PRIVATE_KEY} ${IOT_DEVICE_PRIVATE_KEY_PATH}
+fi
