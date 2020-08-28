@@ -31,47 +31,13 @@ class GCSDownloadHandler:
     Takes bucket name, blob name, project id and access token as input.
     """
 
-    def __init__(self, project_id, access_token, bucket_name, blob_name, local_file_path=None, local_file_name=None):
-        if not project_id:
-            logger.warn('No valid project id provided. GCSDownloadHandler is disabled')
-            self._enabled = False
-            return
-
-        storage_client = self._get_storage_client(project_id, access_token)
-
-        if not storage_client:
-            logger.warn('Could not initialize Cloud Storage client. GCSDownloadHandler is disabled')
-            self._enabled = False
-            return
-        
-        bucket = self._get_bucket(storage_client, bucket_name)
-
-        if not bucket:
-            logger.warn('Could not access bucket. GCSDownloadHandler is disabled')
-            self._enabled = False
-            return
-
-        blob = self._get_blob(bucket, blob_name)
-
-        if not blob:
-            logger.warn('Could not access blob. GCSDownloadHandler is disabled')
-            self._enabled = False
-            return
-        
-        self._blob = blob
+    def __init__(self, project_id, local_file_path=None):
+        self._project_id = project_id
 
         if not local_file_path:
             self._local_file_path = os.getcwd()
         else:
             self._local_file_path = local_file_path
-
-        if not local_file_name:
-            self._local_file_name = blob_name
-        else:
-            self._local_file_name = local_file_name
-        
-        self._enabled = True
-    
 
     def _get_storage_client(self, project_id, access_token):
         try:
@@ -79,7 +45,7 @@ class GCSDownloadHandler:
             storage_client = storage.Client(project=project_id, credentials=token_cred)
             return storage_client
         except Exception:
-            logger.warn('Got invalid access token.')
+            logger.warn('Could not initialize Cloud Storage client.')
     
 
     def _get_bucket(self, storage_client, bucket_name):
@@ -87,7 +53,7 @@ class GCSDownloadHandler:
             bucket = storage_client.bucket(bucket_name)
             return bucket
         except Exception:
-            logger.warn(f'Got invalid bucket: {bucket_name}.')
+            logger.warn(f'Could not access bucket: {bucket_name}.')
         
     
     def _get_blob(self, bucket, blob_name):
@@ -95,14 +61,53 @@ class GCSDownloadHandler:
             blob = bucket.blob(blob_name)
             return blob
         except Exception:
-            logger.warn(f'Got invalid blob: {blob_name}.')
-        
+            logger.warn(f'Could not access blob: {blob_name}.')
     
-    def download(self):
-        if not self._enabled:
-            return
-        try:
-            self._blob.download_to_filename(f'{self._local_file_path}/{self._local_file_name}')
-        except Exception as e:
-            logger.warn(f'Fail to download file: {self._blob}. {e}')
-        logger.info(f'Successfully downloaded {self._local_file_path}/{self._local_file_name}')
+    def on_message(self, json_payload):
+        if 'message-type' in json_payload and json_payload['message-type'] == 'FILE-DOWNLOAD':
+            if not self._project_id:
+                logger.warn('No valid project id provided. GCSDownloadHandler is disabled')
+                return
+
+            message = json_payload['message']
+            download_fail_msg = 'Failed to download file.'
+
+            storage_client = self._get_storage_client(self._project_id, message['access-token'])
+            if not storage_client:
+                logger.warn(download_fail_msg)
+                return
+
+            bucket = self._get_bucket(storage_client, message['bucket'])
+            if not bucket:
+                logger.warn(download_fail_msg)
+                return
+
+            blob_name = message['file']
+
+            blob = self._get_blob(bucket, blob_name)
+            if not blob:
+                logger.warn(download_fail_msg)
+                return
+
+            try:
+                blob.download_to_filename(f'{self._local_file_path}/{blob_name}')
+            except Exception as e:
+                logger.warn(f'Fail to download file: {blob}. {e}')
+
+            logger.info(f'Successfully downloaded {self._local_file_path}/{blob_name}')
+
+
+# class GCSUploadHandler:
+#     """
+#     Manages file upload to Google Cloud Storage.
+
+#     Takes a Cloud IoT client as input
+#     """
+
+#     _UPLOAD_REQUEST_MESSAGE = {'message-type': 'UPLOAD-REQUEST'}
+
+#     def __init__(self, cloud):
+#         self._cloud = cloud
+#         self._event = threading.Event()
+
+

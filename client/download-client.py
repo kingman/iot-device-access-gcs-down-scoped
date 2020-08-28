@@ -18,24 +18,23 @@ from time import sleep
 import json
 import itertools
 
-def create_callback(cloud):
+def create_callback(handlers):
 
     def on_message(unused_client, unused_userdata, message):
         json_payload = json.loads(str(message.payload.decode('utf-8')))
-        if json_payload['message-type'] == 'FILE-DOWNLOAD':
-            message = json_payload['message']
-            download_handler = GCSDownloadHandler(
-                project_id=cloud.project_id(),
-                access_token=message['access-token'],
-                bucket_name=message['bucket'],
-                blob_name=message['file'])
-            download_handler.download()
+        for handler in handlers:
+            try:
+                handler.on_message(json_payload)
+            except Exception:
+                print(f'{type(handler).__name__} failed to handle message')
 
     return {'on_message': on_message}
 
 def main():
     with CloudIot() as cloud:
-        cloud.register_message_callbacks(create_callback(cloud))
+        download_handler = GCSDownloadHandler(cloud.project_id())
+        cloud.register_message_callbacks({download_handler})
+
         for read_count in itertools.count():
             sleep(1000)
 
