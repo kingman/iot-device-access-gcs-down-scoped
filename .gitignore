@@ -1,6 +1,9 @@
 *.pem
 .terraform/
 backend.tf
+set-env.sh
 terraform.tfvars
 *.zip
 tests/
+cloud_config.ini
+__pycache__/
