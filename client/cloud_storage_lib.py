@@ -19,10 +19,38 @@ import logging
 import google.oauth2.credentials
 import os
 
+from datetime import datetime, timedelta
 from google.cloud import storage
 
 logging.basicConfig(level=20)
 logger = logging.getLogger(__name__)
+
+class GCSClientHelper:
+    @staticmethod
+    def get_storage_client(project_id, access_token):
+        try:
+            token_cred = google.oauth2.credentials.Credentials(token=access_token)
+            storage_client = storage.Client(project=project_id, credentials=token_cred)
+            return storage_client
+        except Exception:
+            logger.warn('Could not initialize Cloud Storage client.')
+
+    @staticmethod
+    def get_bucket(storage_client, bucket_name):
+        try:
+            bucket = storage_client.bucket(bucket_name)
+            return bucket
+        except Exception:
+            logger.warn(f'Could not access bucket: {bucket_name}.')
+
+    @staticmethod
+    def get_blob(bucket, blob_name):
+    try:
+        blob = bucket.blob(blob_name)
+        return blob
+    except Exception:
+        logger.warn(f'Could not access blob: {blob_name}.')
+
 
 class GCSDownloadHandler:
     """
@@ -39,30 +67,7 @@ class GCSDownloadHandler:
         else:
             self._local_file_path = local_file_path
 
-    def _get_storage_client(self, project_id, access_token):
-        try:
-            token_cred = google.oauth2.credentials.Credentials(token=access_token)
-            storage_client = storage.Client(project=project_id, credentials=token_cred)
-            return storage_client
-        except Exception:
-            logger.warn('Could not initialize Cloud Storage client.')
-    
 
-    def _get_bucket(self, storage_client, bucket_name):
-        try:
-            bucket = storage_client.bucket(bucket_name)
-            return bucket
-        except Exception:
-            logger.warn(f'Could not access bucket: {bucket_name}.')
-        
-    
-    def _get_blob(self, bucket, blob_name):
-        try:
-            blob = bucket.blob(blob_name)
-            return blob
-        except Exception:
-            logger.warn(f'Could not access blob: {blob_name}.')
-    
     def on_message(self, json_payload):
         if 'message-type' in json_payload and json_payload['message-type'] == 'FILE-DOWNLOAD':
             if not self._project_id:
@@ -72,19 +77,19 @@ class GCSDownloadHandler:
             message = json_payload['message']
             download_fail_msg = 'Failed to download file.'
 
-            storage_client = self._get_storage_client(self._project_id, message['access-token'])
+            storage_client = GCSClientHelper.get_storage_client(self._project_id, message['access-token'])
             if not storage_client:
                 logger.warn(download_fail_msg)
                 return
 
-            bucket = self._get_bucket(storage_client, message['bucket'])
+            bucket = GCSClientHelper.get_bucket(storage_client, message['bucket'])
             if not bucket:
                 logger.warn(download_fail_msg)
                 return
 
             blob_name = message['file']
 
-            blob = self._get_blob(bucket, blob_name)
+            blob = GCSClientHelper.get_blob(bucket, blob_name)
             if not blob:
                 logger.warn(download_fail_msg)
                 return
@@ -97,17 +102,65 @@ class GCSDownloadHandler:
             logger.info(f'Successfully downloaded {self._local_file_path}/{blob_name}')
 
 
-# class GCSUploadHandler:
-#     """
-#     Manages file upload to Google Cloud Storage.
+class GCSUploadHandler:
+    """
+    Manages file upload to Google Cloud Storage.
 
-#     Takes a Cloud IoT client as input
-#     """
+    Takes a Cloud IoT client as input
+    """
 
-#     _UPLOAD_REQUEST_MESSAGE = {'message-type': 'UPLOAD-REQUEST'}
+    _UPLOAD_REQUEST_MESSAGE = {'message-type': 'UPLOAD-REQUEST'}
+    _TOKE_LIFETIME = 1700
 
-#     def __init__(self, cloud):
-#         self._cloud = cloud
-#         self._event = threading.Event()
+    def __init__(self, cloud):
+        self._cloud = cloud
+        self._event = threading.Event()
+        self._bucket = None
+        self._cwd = os.getcwd()
 
+    def _ready_to_upload(self):
+        return self._bucket is not None and self._expiry > datetime.now()
 
+    def _get_file_upload_token(self):
+        self._event.clear()
+        self._cloud.publish_message(_UPLOAD_REQUEST_MESSAGE)
+        received = self._event.wait(50)
+        if received:
+            logger.info('Received access token for upload')
+
+    def on_message(self, json_payload):
+        if 'message-type' in json_payload and json_payload['message-type'] == 'FILE-UPLOAD':
+            message = json_payload['message']
+
+            fail_msg = 'Failed to create upload client using access-token.'
+
+            storage_client = GCSClientHelper.get_storage_client(self._cloud.project_id(), message['access-token'])
+            if not storage_client:
+                logger.warn(fail_msg)
+                self._event.set()
+                return
+
+            bucket = GCSClientHelper.get_bucket(storage_client, message['bucket'])
+            if not bucket:
+                logger.warn(download_fail_msg)
+                self._event.set()
+                return
+
+            self._bucket = bucket
+
+            self._expiry = datetime.now() + timedelta(seconds=_TOKE_LIFETIME)
+
+            self._event.set()
+
+    def upload_file(self, file_name, local_file_path=None):
+        if not self._ready_to_upload():
+            self._get_file_upload_token()
+
+        if self._ready_to_upload():
+            blob = self._bucket.blob(file_name)
+            if local_file_path is None:
+                file_full_path = f'{self._cwd}/{file_name}'
+            else:
+                file_full_path = f'{local_file_path}/{file_name}'
+            blob.upload_from_filename(file_full_path)
+            logger.info(f'uploaded {file_name} to Cloud Storage')
