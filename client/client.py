@@ -36,7 +36,7 @@ def create_callback(handlers):
 def main():
     with CloudIot() as cloud:
         download_handler = GCSDownloadHandler(cloud.project_id())
-        upload_handler = GCSUploadHandler(cloud
+        upload_handler = GCSUploadHandler(cloud)
         callbacks = create_callback({download_handler, upload_handler})
         cloud.register_message_callbacks(callbacks)
 
