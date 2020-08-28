@@ -45,11 +45,11 @@ class GCSClientHelper:
 
     @staticmethod
     def get_blob(bucket, blob_name):
-    try:
-        blob = bucket.blob(blob_name)
-        return blob
-    except Exception:
-        logger.warn(f'Could not access blob: {blob_name}.')
+        try:
+            blob = bucket.blob(blob_name)
+            return blob
+        except Exception:
+            logger.warn(f'Could not access blob: {blob_name}.')
 
 
 class GCSDownloadHandler:
