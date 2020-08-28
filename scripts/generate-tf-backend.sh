@@ -1,4 +1,3 @@
-  
 #!/usr/bin/env sh
 
 # Copyright 2020 Google LLC
