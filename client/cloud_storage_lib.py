@@ -124,7 +124,7 @@ class GCSUploadHandler:
 
     def _get_file_upload_token(self):
         self._event.clear()
-        self._cloud.publish_message(_UPLOAD_REQUEST_MESSAGE)
+        self._cloud.publish_message(self._UPLOAD_REQUEST_MESSAGE)
         received = self._event.wait(50)
         if received:
             logger.info('Received access token for upload')
@@ -149,7 +149,7 @@ class GCSUploadHandler:
 
             self._bucket = bucket
 
-            self._expiry = datetime.now() + timedelta(seconds=_TOKE_LIFETIME)
+            self._expiry = datetime.now() + timedelta(seconds=self._TOKE_LIFETIME)
 
             self._event.set()
 
